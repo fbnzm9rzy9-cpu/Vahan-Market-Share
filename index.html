@@ -20,7 +20,7 @@ header{background:linear-gradient(110deg,#06152b,#12345c);color:white;padding:24
 <div class="toolbar"><div class="heading"><h2>City &amp; Cluster Overview</h2><p>November performance across clusters, cities and RTOs</p></div><button class="details-link" id="goDetail">Detailed view ↗</button></div>
 <div class="overview-grid">
  <div class="card period-mtd"><div class="period-head"><h3>Monthly Performance</h3><span>MTD · NOVEMBER</span></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Cluster / City / RTO</th><th>Industry</th><th>NEXA Volume</th><th>NEXA MS</th><th>MS Δ LY</th></tr></thead><tbody id="overviewMtd"><tr><td colspan="5" class="loading">Loading workbook…</td></tr></tbody></table></div></div>
- <div class="card period-ytd"><div class="period-head"><h3>Year-to-Date Performance</h3><span>YTD · TILL NOVEMBER</span></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Cluster / City / RTO</th><th>Industry</th><th>NEXA MS</th><th>MS Δ LY</th></tr></thead><tbody id="overviewYtd"><tr><td colspan="4" class="loading">Loading workbook…</td></tr></tbody></table></div></div>
+ <div class="card period-ytd"><div class="period-head"><h3>Year-to-Date Performance</h3><span>YTD · TILL NOVEMBER</span></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Cluster / City / RTO</th><th>Industry</th><th>NEXA Volume</th><th>NEXA MS</th><th>MS Δ LY</th></tr></thead><tbody id="overviewYtd"><tr><td colspan="4" class="loading">Loading workbook…</td></tr></tbody></table></div></div>
 </div>
 </section>
 <section id="detail" class="hidden"><div class="toolbar"><div class="heading"><h2>RTO Detailed Analysis</h2><p>OEM competition and fuel-wise market share for the selected RTO</p></div><div class="period"><button id="mtdBtn" class="active">MTD</button><button id="ytdBtn">YTD</button></div></div>
@@ -53,7 +53,7 @@ function parseWorkbook(wb){
    current={name:label,summary:metric(r),cities:[]};
   }else if(/ CITY$/i.test(name)){
    finishCity(name.replace(/ CITY$/i,''),metric(r));
-  }else if(/^MP\\d+$/i.test(clean(r[0]))){
+  }else if(/^MP\d+$/i.test(clean(r[0]))){
    cityRtos.push(metric(r));
   }
  }
