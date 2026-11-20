@@ -31,50 +31,75 @@ header{background:linear-gradient(110deg,#06152b,#12345c);color:white;padding:24
 const WORKBOOK_URL='./Vahan%20Portal%20Data.xlsx';
 let data={clusters:[],oem:[],fuel:[],cities:[]},period='MTD',selectedCity='',selectedRto='',openCity=null;
 const $=id=>document.getElementById(id);
-const n=v=>Number.isFinite(Number(v))?Number(v):0;
+const n=v=>{if(typeof v==='string')v=v.replace(/,/g,'').replace('%','');const x=Number(v);return Number.isFinite(x)?x:0;};
 const clean=v=>String(v??'').trim();
-const pct=v=>(n(v)*100).toFixed(2)+'%';
-const num=v=>n(v).toLocaleString('en-IN',{maximumFractionDigits:0});
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=v=>clean(v).toUpperCase().replace(/[^A-Z0-9]/g,'');
+const pct=v=>{const x=n(v);return (Math.abs(x)>1?x:x*100).toFixed(2)+'%';};
+const num=v=>n(v).toLocaleString('en-IN',{maximumFractionDigits:1});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const delta=v=>'<span class="'+(n(v)>=0?'positive':'negative')+'">'+(n(v)>0?'+':'')+pct(v)+'</span>';
 const metric=r=>({code:clean(r[0]),name:clean(r[1]),mtd:{industry:n(r[2]),volume:n(r[4]),share:n(r[5]),change:n(r[6])},ytd:{industry:n(r[10]),volume:n(r[12]),share:n(r[13]),change:n(r[14])}});
+function parseFuelSheet(rows){
+ const fuels=['CNG','DIESEL','EV','PETROL','TOTAL'];let header=-1,best=0;
+ for(let i=0;i<Math.min(rows.length,12);i++){const count=fuels.filter(f=>(rows[i]||[]).some(v=>norm(v)===f)).length;if(count>best){best=count;header=i;}}
+ const colMeta={},maxCols=Math.max(...rows.slice(0,Math.min(rows.length,12)).map(r=>(r||[]).length),0),carried=Array(Math.min(rows.length,12)).fill('');
+ for(let c=0;c<maxCols;c++){
+  const parts=[];
+  for(let rr=0;rr<Math.min(rows.length,12);rr++){const cell=clean((rows[rr]||[])[c]);if(cell)carried[rr]=cell;if(carried[rr])parts.push(carried[rr].toUpperCase());}
+  const joined=parts.join(' '),fuel=fuels.find(f=>new RegExp('\\b'+f+'\\b').test(joined));
+  let metric='';if(/VOLUME|COUNT|QTY|NOS/.test(joined))metric='volume';else if(/CHANGE|DELTA|VARIANCE|VS LY/.test(joined))metric='change';else if(/MARKET SHARE|MS%|MS %|SHARE/.test(joined))metric='share';
+  if(fuel&&metric)colMeta[c]={fuel,metric};
+ }
+ const records=[];
+ for(let i=Math.max(5,header+1);i<rows.length;i++){
+  const r=rows[i]||[],cells=r.map(clean),location=clean(r[1])||clean(r[0])||cells.find(x=>/INDORE|BHOPAL|CHHINDWARA|KHARGONE/i.test(x))||'',match=cells.join(' ').match(/MP\d+/i),code=match?match[0].toUpperCase():'';
+  if(!location&&!code)continue;
+  const values={};fuels.forEach(f=>values[f]={volume:0,share:0,change:0});
+  Object.entries(colMeta).forEach(([col,m])=>values[m.fuel][m.metric]=n(r[Number(col)]));
+  if(Object.values(values).some(v=>v.volume||v.share||v.change))records.push({code,location:location.toUpperCase(),values});
+ }
+ return records;
+}
 function parseWorkbook(wb){
- const toRows=ws=>XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
- const a=toRows(wb.Sheets['NEXA RTO Wise MS']),b=toRows(wb.Sheets['OEM WIse RTO WIse Market Share']),c=toRows(wb.Sheets['RTO Wise Fuel Wise']);
- if(!a||!b||!c)throw Error('The workbook must contain all three required worksheets. Check the tab names.');
- const clusters=[];let current=null,cityRtos=[],cityRows=[];
- const special=new Set(['CHHINDWARA','KHARGONE']);
- const finishCity=(name,summary)=>{if(current){current.cities.push({name,summary,rtos:cityRtos});cityRtos=[];}};
+ const rows=ws=>XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null}),a=rows(wb.Sheets['NEXA RTO Wise MS']),b=rows(wb.Sheets['OEM WIse RTO WIse Market Share']),c=rows(wb.Sheets['RTO Wise Fuel Wise']);
+ if(!a||!b||!c)throw Error('The workbook must contain all three required worksheets.');
+ const clusters=[];let current=null,cityRtos=[];const special=new Set(['CHHINDWARA','KHARGONE']);
  const finishCluster=()=>{if(!current)return;if(special.has(current.name.toUpperCase())&&cityRtos.length){current.cities.push({name:current.name,summary:current.summary,rtos:cityRtos});cityRtos=[];}else if(cityRtos.length){current.cities.push({name:current.name+' City',summary:null,rtos:cityRtos});cityRtos=[];}clusters.push(current);current=null;};
- for(let i=2;i<a.length;i++){
-  const r=a[i],name=clean(r[1]);if(!name)continue;
-  if(/ CLUSTER$/i.test(name)){
-   finishCluster();const label=name.replace(/ CLUSTER$/i,'');
-   current={name:label,summary:metric(r),cities:[]};
-  }else if(/ CITY$/i.test(name)){
-   finishCity(name.replace(/ CITY$/i,''),metric(r));
-  }else if(/^MP\d+$/i.test(clean(r[0]))){
-   cityRtos.push(metric(r));
-  }
+ for(let i=2;i<a.length;i++){const r=a[i]||[],name=clean(r[1]);if(!name)continue;
+  if(/ CLUSTER$/i.test(name)){finishCluster();current={name:name.replace(/ CLUSTER$/i,''),summary:metric(r),cities:[]};}
+  else if(/ CITY$/i.test(name)){if(current){current.cities.push({name:name.replace(/ CITY$/i,''),summary:metric(r),rtos:cityRtos});cityRtos=[];}}
+  else if(/^MP\d+$/i.test(clean(r[0]))){cityRtos.push(metric(r));}
  }
  finishCluster();
  const oem=b.slice(5).filter(r=>clean(r[0])&&clean(r[1])).map(r=>({city:clean(r[0]),name:clean(r[1]),mtd:{volume:n(r[2]),share:n(r[3]),change:n(r[4])},ytd:{volume:n(r[6]),share:n(r[7]),change:n(r[8])}}));
- const fuel=parseFuelSheet(c);function renderDetail(){
- const p=period==='MTD'?'mtd':'ytd',periodLabel=period==='MTD'?'November · MTD':'Till November · YTD';
- $('oemPeriod').textContent=periodLabel;$('fuelPeriod').textContent=periodLabel;
- if(!selectedCity||!selectedRto){
-  $('oemBody').innerHTML='<tr><td colspan="4" class="empty">Select a city and RTO to view OEM data</td></tr>';
-  $('fuelBody').innerHTML='<tr><td colspan="6" class="empty">Select an RTO to view fuel-wise performance</td></tr>';return;
- }
- const rto=selectedCityObject()?.rtos.find(r=>r.code===selectedRto);
- const oemRows=data.oem.filter(x=>x.city.toUpperCase()===rto?.name.toUpperCase());
- $('oemBody').innerHTML=oemRows.map(x=>'<tr><td style="text-align:left;font-weight:700">'+esc(x.name)+'</td><td>'+num(x[p].volume)+'</td><td>'+pct(x[p].share)+'</td><td>'+delta(x[p].change)+'</td></tr>').join('')||'<tr><td colspan="4" class="empty">No OEM records found for this RTO in Tab 2.</td></tr>';
- const norm=x=>clean(x).toUpperCase().replace(/[^A-Z0-9]/g,'');
- const fuel=data.fuel.find(x=>x.code.toUpperCase()===selectedRto.toUpperCase())||
-  data.fuel.find(x=>norm(x.location).includes(norm(rto?.name))||norm(rto?.name).includes(norm(x.location)));
- const fuels=['CNG','DIESEL','EV','PETROL','TOTAL'];
- if(!fuel){$('fuelBody').innerHTML='<tr><td colspan="6" class="empty">No matching fuel-wise row found for '+esc(selectedRto)+' · '+esc(rto?.name||'')+'. Check Tab 3 RTO label.</td></tr>';return;}
- const keys=['volume','share','change'],labels=['Fuel-wise Volume','Fuel-wise Market Share','Market Share Change'];
- $('fuelBody').innerHTML=keys.map((k,i)=>'<tr><td style="text-align:left;font-weight:750">'+labels[i]+'</td>'+fuels.map(f=>'<td>'+(k==='volume'?num(fuel.values[f][k]):delta(fuel.values[f][k]))+'</td>').join('')+'</tr>').join('');
+ data={clusters,oem,fuel:parseFuelSheet(c),cities:[...new Set(clusters.flatMap(x=>x.cities.map(y=>y.name)))].sort((x,y)=>x.localeCompare(y))};
 }
->
+function overviewCells(x,p){const v=x[p];return '<td>'+num(v.industry)+'</td><td>'+num(v.volume)+'</td><td>'+pct(v.share)+'</td><td>'+delta(v.change)+'</td>';}
+function renderOverview(){
+ let mtd='',ytd='';
+ data.clusters.forEach((cl,ci)=>{const label='<td>▰ &nbsp;'+esc(cl.name)+' CLUSTER</td>';mtd+='<tr class="group-row">'+label+overviewCells(cl.summary,'mtd')+'</tr>';ytd+='<tr class="group-row">'+label+overviewCells(cl.summary,'ytd')+'</tr>';
+  cl.cities.forEach((city,j)=>{const key=ci+'-'+j,open=openCity===key,name='<td><div class="city-name"><span class="chev">'+(open?'−':'+')+'</span>'+esc(city.name)+'</div></td>';mtd+='<tr class="city-row" data-key="'+key+'">'+name+overviewCells(city.summary,'mtd')+'</tr>';ytd+='<tr class="city-row" data-key="'+key+'">'+name+overviewCells(city.summary,'ytd')+'</tr>';
+   if(open)city.rtos.forEach(r=>{const label='<td>'+esc(r.code)+' · '+esc(r.name)+'</td>';mtd+='<tr class="rto-row">'+label+overviewCells(r,'mtd')+'</tr>';ytd+='<tr class="rto-row">'+label+overviewCells(r,'ytd')+'</tr>';});
+  });
+ });
+ $('overviewMtd').innerHTML=mtd||'<tr><td colspan="5" class="empty">No records found.</td></tr>';$('overviewYtd').innerHTML=ytd||'<tr><td colspan="5" class="empty">No records found.</td></tr>';
+ document.querySelectorAll('.city-row').forEach(el=>el.addEventListener('click',()=>{openCity=openCity===el.dataset.key?null:el.dataset.key;renderOverview();}));
+}
+function selectedCityObject(){return data.clusters.flatMap(x=>x.cities).find(x=>x.name===selectedCity);}
+function setCityOptions(){$('citySelect').innerHTML='<option value="">Choose city</option>'+data.cities.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');}
+function setRtoOptions(){const list=selectedCityObject()?.rtos||[];$('rtoSelect').innerHTML='<option value="">Choose RTO</option>'+list.map(r=>'<option value="'+esc(r.code)+'">'+esc(r.code)+' · '+esc(r.name)+'</option>').join('');$('rtoSelect').disabled=!list.length;selectedRto='';renderDetail();}
+function renderDetail(){
+ const p=period==='MTD'?'mtd':'ytd',label=period==='MTD'?'November · MTD':'Till November · YTD';$('oemPeriod').textContent=label;$('fuelPeriod').textContent=label;
+ if(!selectedCity||!selectedRto){$('oemBody').innerHTML='<tr><td colspan="4" class="empty">Select a city and RTO to view OEM data</td></tr>';$('fuelBody').innerHTML='<tr><td colspan="6" class="empty">Select an RTO to view fuel-wise performance</td></tr>';return;}
+ const rto=selectedCityObject()?.rtos.find(r=>r.code===selectedRto),oemRows=data.oem.filter(x=>norm(x.city)===norm(rto?.name));
+ $('oemBody').innerHTML=oemRows.map(x=>'<tr><td style="text-align:left;font-weight:700">'+esc(x.name)+'</td><td>'+num(x[p].volume)+'</td><td>'+pct(x[p].share)+'</td><td>'+delta(x[p].change)+'</td></tr>').join('')||'<tr><td colspan="4" class="empty">No OEM records found for this RTO in Tab 2.</td></tr>';
+ const fuel=data.fuel.find(x=>x.code===selectedRto.toUpperCase())||data.fuel.find(x=>norm(x.location)===norm(rto?.name)),names=['CNG','DIESEL','EV','PETROL','TOTAL'];
+ if(!fuel){$('fuelBody').innerHTML='<tr><td colspan="6" class="empty">No matching fuel-wise row found for '+esc(selectedRto)+' · '+esc(rto?.name||'')+'. Tab 3 row label needs review.</td></tr>';return;}
+ const rows=[['Fuel-wise Volume','volume'],['Fuel-wise Market Share','share'],['Market Share Change','change']];
+ $('fuelBody').innerHTML=rows.map(([title,key])=>'<tr><td style="text-align:left;font-weight:750">'+title+'</td>'+names.map(f=>'<td>'+(key==='volume'?num(fuel.values[f][key]):delta(fuel.values[f][key]))+'</td>').join('')+'</tr>').join('');
+}
+function showPage(which){const detail=which==='detail';$('overview').classList.toggle('hidden',detail);$('detail').classList.toggle('hidden',!detail);$('tabOverview').classList.toggle('active',!detail);$('tabDetail').classList.toggle('active',detail);}
+async function load(){try{const response=await fetch(WORKBOOK_URL+'?v='+Date.now(),{cache:'no-store'});if(!response.ok)throw Error('Workbook could not be loaded from GitHub.');const wb=XLSX.read(await response.arrayBuffer(),{type:'array'});parseWorkbook(wb);renderOverview();setCityOptions();$('updated').textContent='Workbook synced · '+new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});$('error').classList.add('hidden');}catch(e){$('error').textContent=e.message;$('error').classList.remove('hidden');$('updated').textContent='Workbook unavailable';}}
+$('tabOverview').onclick=()=>showPage('overview');$('tabDetail').onclick=()=>showPage('detail');$('goDetail').onclick=()=>showPage('detail');$('citySelect').onchange=e=>{selectedCity=e.target.value;setRtoOptions();};$('rtoSelect').onchange=e=>{selectedRto=e.target.value;renderDetail();};$('mtdBtn').onclick=()=>{period='MTD';$('mtdBtn').classList.add('active');$('ytdBtn').classList.remove('active');renderDetail();};$('ytdBtn').onclick=()=>{period='YTD';$('ytdBtn').classList.add('active');$('mtdBtn').classList.remove('active');renderDetail();};
+load();setInterval(load,300000);
+</script>
