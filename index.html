@@ -74,12 +74,16 @@ function parseWorkbook(wb){
  const oem=b.slice(5).filter(r=>clean(r[0])&&clean(r[1])).map(r=>({city:clean(r[0]),name:clean(r[1]),mtd:{volume:n(r[2]),share:n(r[3]),change:n(r[4])},ytd:{volume:n(r[6]),share:n(r[7]),change:n(r[8])}}));
  data={clusters,oem,fuel:parseFuelSheet(c),cities:[...new Set(clusters.flatMap(x=>x.cities.map(y=>y.name)))].sort((x,y)=>x.localeCompare(y))};
 }
-function overviewCells(x,p){const v=x[p];return '<td>'+num(v.industry)+'</td><td>'+num(v.volume)+'</td><td>'+pct(v.share)+'</td><td>'+delta(v.change)+'</td>';}
+function overviewCells(x,p){
+ const v=x&&x[p];
+ if(!v||typeof v!=='object')return '<td>—</td><td>—</td><td>—</td><td>—</td>';
+ return '<td>'+num(v.industry)+'</td><td>'+num(v.volume)+'</td><td>'+pct(v.share)+'</td><td>'+delta(v.change)+'</td>';
+}
 function renderOverview(){
  let mtd='',ytd='';
- data.clusters.forEach((cl,ci)=>{const label='<td>▰ &nbsp;'+esc(cl.name)+' CLUSTER</td>';mtd+='<tr class="group-row">'+label+overviewCells(cl.summary,'mtd')+'</tr>';ytd+='<tr class="group-row">'+label+overviewCells(cl.summary,'ytd')+'</tr>';
-  cl.cities.forEach((city,j)=>{const key=ci+'-'+j,open=openCity===key,name='<td><div class="city-name"><span class="chev">'+(open?'−':'+')+'</span>'+esc(city.name)+'</div></td>';mtd+='<tr class="city-row" data-key="'+key+'">'+name+overviewCells(city.summary,'mtd')+'</tr>';ytd+='<tr class="city-row" data-key="'+key+'">'+name+overviewCells(city.summary,'ytd')+'</tr>';
-   if(open)city.rtos.forEach(r=>{const label='<td>'+esc(r.code)+' · '+esc(r.name)+'</td>';mtd+='<tr class="rto-row">'+label+overviewCells(r,'mtd')+'</tr>';ytd+='<tr class="rto-row">'+label+overviewCells(r,'ytd')+'</tr>';});
+ data.clusters.filter(Boolean).forEach((cl,ci)=>{const label='<td>▰ &nbsp;'+esc(cl.name)+' CLUSTER</td>';mtd+='<tr class="group-row">'+label+overviewCells(cl.summary,'mtd')+'</tr>';ytd+='<tr class="group-row">'+label+overviewCells(cl.summary,'ytd')+'</tr>';
+  (cl.cities||[]).filter(Boolean).forEach((city,j)=>{const key=ci+'-'+j,open=openCity===key,name='<td><div class="city-name"><span class="chev">'+(open?'−':'+')+'</span>'+esc(city.name)+'</div></td>';mtd+='<tr class="city-row" data-key="'+key+'">'+name+overviewCells(city.summary,'mtd')+'</tr>';ytd+='<tr class="city-row" data-key="'+key+'">'+name+overviewCells(city.summary,'ytd')+'</tr>';
+   if(open)(city.rtos||[]).filter(Boolean).forEach(r=>{const label='<td>'+esc(r.code)+' · '+esc(r.name)+'</td>';mtd+='<tr class="rto-row">'+label+overviewCells(r,'mtd')+'</tr>';ytd+='<tr class="rto-row">'+label+overviewCells(r,'ytd')+'</tr>';});
   });
  });
  $('overviewMtd').innerHTML=mtd||'<tr><td colspan="5" class="empty">No records found.</td></tr>';$('overviewYtd').innerHTML=ytd||'<tr><td colspan="5" class="empty">No records found.</td></tr>';
