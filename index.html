@@ -60,53 +60,30 @@ function parseFuelSheet(rows){
  }
  return records;
 }
-const RTO_CITY={
- MP04:'Bhopal',MP05:'Narmadapuram',MP06:'Morena',MP07:'Gwalior',MP08:'Guna',
- MP09:'Indore',MP10:'Khargone',MP11:'Dhar',MP12:'Khandwa',MP13:'Ujjain',
- MP14:'Mandsaur',MP15:'Sagar',MP16:'Chhatarpur',MP17:'Rewa',MP18:'Shahdol',
- MP19:'Satna',MP20:'Jabalpur',MP21:'Katni',MP22:'Seoni',MP28:'Chhindwara',
- MP30:'Bhind',MP31:'Sheopur',MP32:'Datia',MP33:'Shivpuri',MP34:'Damoh',
- MP35:'Panna',MP36:'Tikamgarh',MP37:'Sehore',MP38:'Raisen',MP39:'Rajgarh',
- MP40:'Vidisha',MP41:'Dewas',MP42:'Shajapur',MP43:'Ratlam',MP44:'Neemuch',
- MP45:'Jhabua',MP46:'Barwani',MP47:'Harda',MP48:'Betul',MP49:'Narsinghpur',
- MP50:'Balaghat',MP51:'Mandla',MP52:'Dindori',MP53:'Sidhi',MP54:'Umaria',
- MP55:'Bagli',MP65:'Anuppur',MP66:'Singrauli',MP67:'Ashoknagar',
- MP68:'Burhanpur',MP69:'Alirajpur',MP70:'Agar Malwa',MP71:'Niwari',
- MP72:'Mauganj',MP73:'Maihar',MP74:'Pandhurna'
-};
-function aggregateRtos(rtos){
- const result={mtd:{industry:0,volume:0,share:0,change:0},ytd:{industry:0,volume:0,share:0,change:0}};
- ['mtd','ytd'].forEach(p=>{
-  let weightedChange=0,weight=0;
-  rtos.forEach(r=>{const v=r&&r[p];if(!v)return;result[p].industry+=n(v.industry);result[p].volume+=n(v.volume);weightedChange+=n(v.change)*Math.max(0,n(v.industry));weight+=Math.max(0,n(v.industry));});
-  result[p].share=result[p].industry?result[p].volume/result[p].industry*100:0;
-  result[p].change=weight?weightedChange/weight:0;
- });
- return result;
-}
 function parseWorkbook(wb){
  const rows=ws=>XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null}),a=rows(wb.Sheets['NEXA RTO Wise MS']),b=rows(wb.Sheets['OEM WIse RTO WIse Market Share']),c=rows(wb.Sheets['RTO Wise Fuel Wise']);
  if(!a||!b||!c)throw Error('The workbook must contain all three required worksheets.');
- const clusters=[];let current=null;
- const finishCluster=()=>{if(!current)return;current.cities.forEach(city=>{if(!city.summary)city.summary=aggregateRtos(city.rtos);});clusters.push(current);current=null;};
- const ensureCity=(name)=>{let city=current.cities.find(x=>norm(x.name)===norm(name));if(!city){city={name,summary:null,rtos:[]};current.cities.push(city);}return city;};
+ const clusters=[];let cityGroups=[],pendingRtos=[];
+ const flushCity=(name,summary)=>{
+  if(pendingRtos.length){cityGroups.push({name,summary,rtos:pendingRtos});pendingRtos=[];}
+ };
  for(let i=2;i<a.length;i++){
-  const r=a[i]||[],name=clean(r[1]),code=clean(r[0]).toUpperCase();
-  if(!name&&!code)continue;
-  if(/ CLUSTER$/i.test(name)){
-   finishCluster();current={name:name.replace(/ CLUSTER$/i,''),summary:metric(r),cities:[]};continue;
+  const r=a[i]||[],code=clean(r[0]).toUpperCase(),label=clean(r[1]).toUpperCase();
+  if(/^MP\d+$/i.test(code)){pendingRtos.push(metric(r));continue;}
+  if(/ CITY$/.test(label)){
+   flushCity(label.replace(/ CITY$/,''),metric(r));continue;
   }
-  if(!current)continue;
-  if(/ CITY$/i.test(name)){
-   const city=ensureCity(name.replace(/ CITY$/i,''));city.summary=metric(r);continue;
-  }
-  if(/^MP\d+$/i.test(code)){
-   const isStandaloneCity=['CHHINDWARA','KHARGONE'].includes(norm(current.name));
-   const cityName=isStandaloneCity?current.name:(RTO_CITY[code]||name.replace(/^MP-?\d+\s*/i,'').trim()||'Other RTOs');
-   ensureCity(cityName).rtos.push(metric(r));
+  if(/ CLUSTER$/.test(label)){
+   const clusterName=label.replace(/ CLUSTER$/,'');
+   if(pendingRtos.length){
+    // Chhindwara and Khargone are single-city clusters in Tab 1.
+    flushCity(clusterName,metric(r));
+   }
+   clusters.push({name:clusterName,summary:metric(r),cities:cityGroups});
+   cityGroups=[];pendingRtos=[];
   }
  }
- finishCluster();
+ if(pendingRtos.length)flushCity('Other RTOs',aggregateRtos(pendingRtos));
  const oem=b.slice(5).filter(r=>r&&clean(r[0])&&clean(r[1])).map(r=>({city:clean(r[0]),name:clean(r[1]),mtd:{volume:n(r[2]),share:n(r[3]),change:n(r[4])},ytd:{volume:n(r[6]),share:n(r[7]),change:n(r[8])}}));
  data={clusters,oem,fuel:parseFuelSheet(c),cities:[...new Set(clusters.flatMap(x=>x.cities.map(y=>y.name)))].sort((x,y)=>x.localeCompare(y))};
 }
