@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#07152d"><title>Vahan Market Share | NEXA</title><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#07152d"><title>Vahan Market Share | NEXA</title>
 <style>
 :root{--navy:#07182f;--navy2:#102b50;--blue:#1769aa;--ink:#17263d;--muted:#718096;--line:#e4eaf1;--bg:#f3f6fa;--green:#13845b;--red:#cc3947;--soft:#f7f9fc}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -99,7 +99,38 @@ function renderDetail(){
  $('fuelBody').innerHTML=rows.map(([title,key])=>'<tr><td style="text-align:left;font-weight:750">'+title+'</td>'+names.map(f=>'<td>'+(key==='volume'?num(fuel.values[f][key]):delta(fuel.values[f][key]))+'</td>').join('')+'</tr>').join('');
 }
 function showPage(which){const detail=which==='detail';$('overview').classList.toggle('hidden',detail);$('detail').classList.toggle('hidden',!detail);$('tabOverview').classList.toggle('active',!detail);$('tabDetail').classList.toggle('active',detail);}
-async function load(){try{const response=await fetch(WORKBOOK_URL+'?v='+Date.now(),{cache:'no-store'});if(!response.ok)throw Error('Workbook could not be loaded from GitHub.');const wb=XLSX.read(await response.arrayBuffer(),{type:'array'});parseWorkbook(wb);renderOverview();setCityOptions();$('updated').textContent='Workbook synced · '+new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});$('error').classList.add('hidden');}catch(e){$('error').textContent=e.message;$('error').classList.remove('hidden');$('updated').textContent='Workbook unavailable';}}
+async function loadXlsx(){
+ if(window.XLSX)return window.XLSX;
+ const sources=['https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js','https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'];
+ for(const src of sources){
+  try{await new Promise((resolve,reject)=>{const tag=document.createElement('script'),timer=setTimeout(()=>{tag.remove();reject(Error('Spreadsheet library timed out'));},9000);tag.src=src;tag.onload=()=>{clearTimeout(timer);resolve();};tag.onerror=()=>{clearTimeout(timer);tag.remove();reject(Error('Spreadsheet library unavailable'));};document.head.appendChild(tag);});if(window.XLSX)return window.XLSX;}catch(e){}
+ }
+ throw Error('Could not load the Excel reader. Check your internet connection and refresh.');
+}
+async function load(){
+ const status=$('updated');status.textContent='Loading workbook…';
+ $('overviewMtd').innerHTML='<tr><td colspan="5" class="loading">Loading workbook…</td></tr>';
+ $('overviewYtd').innerHTML='<tr><td colspan="5" class="loading">Loading workbook…</td></tr>';
+ try{
+  const XLSX=await loadXlsx();
+  let response;
+  for(const url of [WORKBOOK_URL,'https://raw.githubusercontent.com/fbnzm9rzy9-cpu/Vahan-Market-Share/main/Vahan%20Portal%20Data.xlsx']){
+   try{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);response=await fetch(url+(url.includes('?')?'&':'?')+'v='+Date.now(),{cache:'no-store',signal:controller.signal});clearTimeout(timer);if(response.ok)break;}catch(e){response=null;}
+  }
+  if(!response||!response.ok)throw Error('Workbook could not be reached. Please check the Excel file in the GitHub repository.');
+  const buffer=await response.arrayBuffer();
+  if(!buffer.byteLength)throw Error('The workbook file is empty.');
+  const wb=XLSX.read(buffer,{type:'array'});
+  parseWorkbook(wb);renderOverview();setCityOptions();
+  status.textContent='Updated · '+new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
+  $('error').classList.add('hidden');
+ }catch(e){
+  $('error').textContent=e.message||'Unable to load workbook.';$('error').classList.remove('hidden');
+  status.textContent='Data unavailable';
+  $('overviewMtd').innerHTML='<tr><td colspan="5" class="empty">Unable to load data. Refresh to retry.</td></tr>';
+  $('overviewYtd').innerHTML='<tr><td colspan="5" class="empty">Unable to load data. Refresh to retry.</td></tr>';
+ }
+}
 $('tabOverview').onclick=()=>showPage('overview');$('tabDetail').onclick=()=>showPage('detail');$('goDetail').onclick=()=>showPage('detail');$('citySelect').onchange=e=>{selectedCity=e.target.value;setRtoOptions();};$('rtoSelect').onchange=e=>{selectedRto=e.target.value;renderDetail();};$('mtdBtn').onclick=()=>{period='MTD';$('mtdBtn').classList.add('active');$('ytdBtn').classList.remove('active');renderDetail();};$('ytdBtn').onclick=()=>{period='YTD';$('ytdBtn').classList.add('active');$('mtdBtn').classList.remove('active');renderDetail();};
 load();setInterval(load,300000);
 </script>
