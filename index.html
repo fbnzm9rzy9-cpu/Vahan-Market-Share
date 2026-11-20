@@ -19,14 +19,14 @@ header{background:linear-gradient(110deg,#06152b,#12345c);color:white;padding:24
 <section id="overview">
 <div class="toolbar"><div class="heading"><h2>City &amp; Cluster Overview</h2><p>November performance across clusters, cities and RTOs</p></div><button class="details-link" id="goDetail">Detailed view ↗</button></div>
 <div class="overview-grid">
- <div class="card period-mtd"><div class="period-head"><h3>Monthly Performance</h3><span>MTD · NOVEMBER</span></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Cluster / City / RTO</th><th>Industry</th><th>NEXA MS</th><th>MS Δ LY</th></tr></thead><tbody id="overviewMtd"><tr><td colspan="4" class="loading">Loading workbook…</td></tr></tbody></table></div></div>
+ <div class="card period-mtd"><div class="period-head"><h3>Monthly Performance</h3><span>MTD · NOVEMBER</span></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Cluster / City / RTO</th><th>Industry</th><th>NEXA Volume</th><th>NEXA MS</th><th>MS Δ LY</th></tr></thead><tbody id="overviewMtd"><tr><td colspan="5" class="loading">Loading workbook…</td></tr></tbody></table></div></div>
  <div class="card period-ytd"><div class="period-head"><h3>Year-to-Date Performance</h3><span>YTD · TILL NOVEMBER</span></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Cluster / City / RTO</th><th>Industry</th><th>NEXA MS</th><th>MS Δ LY</th></tr></thead><tbody id="overviewYtd"><tr><td colspan="4" class="loading">Loading workbook…</td></tr></tbody></table></div></div>
 </div>
 </section>
 <section id="detail" class="hidden"><div class="toolbar"><div class="heading"><h2>RTO Detailed Analysis</h2><p>OEM competition and fuel-wise market share for the selected RTO</p></div><div class="period"><button id="mtdBtn" class="active">MTD</button><button id="ytdBtn">YTD</button></div></div>
 <div class="filters"><div class="field"><label for="citySelect">Select City</label><select id="citySelect"><option value="">Choose city</option></select></div><div class="field"><label for="rtoSelect">Select RTO</label><select id="rtoSelect" disabled><option value="">Choose RTO</option></select></div></div>
-<div class="card" style="margin-bottom:14px"><div class="section-title"><h3>OEM-wise Market Share</h3><span id="oemPeriod">November · MTD</span></div><div class="table-scroll"><table class="data-table" style="min-width:560px"><thead><tr><th>OEM</th><th>Volume</th><th>Market Share</th><th>MS Change over LY</th></tr></thead><tbody id="oemBody"><tr><td colspan="4" class="empty">Select a city and RTO to view OEM data</td></tr></tbody></table></div></div>
-<div class="card"><div class="section-title"><h3>Fuel-wise Market Share</h3><span id="fuelPeriod">November · MTD</span></div><div class="fuel-grid" id="fuelGrid"><div class="empty" style="grid-column:1/-1">Select an RTO to view fuel mix market share</div></div></div></section></main>
+<div class="card" style="margin-bottom:14px"><div class="section-title"><h3>OEM-wise Market Share</h3><span id="oemPeriod">November · MTD</span></div><div class="table-scroll"><table class="data-table" style="min-width:560px"><thead><tr><th>OEM</th><th>Volume</th><th>Market Share</th><th>MS Change over LY</th></tr></thead><tbody id="oemBody"><tr><td colspan="5" class="empty">Select a city and RTO to view OEM data</td></tr></tbody></table></div></div>
+<div class="card"><div class="section-title"><h3>Fuel-wise Performance</h3><span id="fuelPeriod">November · MTD</span></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Fuel Metric</th><th>CNG</th><th>Diesel</th><th>EV</th><th>Petrol</th><th>Total</th></tr></thead><tbody id="fuelBody"><tr><td colspan="6" class="empty">Select an RTO to view fuel-wise performance</td></tr></tbody></table></div></div></section></main>
 <script>
 const WORKBOOK_URL='./Vahan%20Portal%20Data.xlsx';
 let data={clusters:[],oem:[],fuel:[],cities:[]},period='MTD',selectedCity='',selectedRto='',openCity=null;
@@ -42,88 +42,39 @@ function parseWorkbook(wb){
  const toRows=ws=>XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
  const a=toRows(wb.Sheets['NEXA RTO Wise MS']),b=toRows(wb.Sheets['OEM WIse RTO WIse Market Share']),c=toRows(wb.Sheets['RTO Wise Fuel Wise']);
  if(!a||!b||!c)throw Error('The workbook must contain all three required worksheets. Check the tab names.');
- const clusters=[];let cityRtos=[],clusterCities=[];
+ const clusters=[];let current=null,cityRtos=[],cityRows=[];
+ const special=new Set(['CHHINDWARA','KHARGONE']);
+ const finishCity=(name,summary)=>{if(current){current.cities.push({name,summary,rtos:cityRtos});cityRtos=[];}};
+ const finishCluster=()=>{if(!current)return;if(special.has(current.name.toUpperCase())&&cityRtos.length){current.cities.push({name:current.name,summary:current.summary,rtos:cityRtos});cityRtos=[];}else if(cityRtos.length){current.cities.push({name:current.name+' City',summary:null,rtos:cityRtos});cityRtos=[];}clusters.push(current);current=null;};
  for(let i=2;i<a.length;i++){
   const r=a[i],name=clean(r[1]);if(!name)continue;
-  if(/ CITY$/i.test(name)){clusterCities.push({name:name.replace(/ CITY$/i,''),summary:metric(r),rtos:cityRtos});cityRtos=[];}
-  else if(/ CLUSTER$/i.test(name)){clusters.push({name:name.replace(/ CLUSTER$/i,''),summary:metric(r),cities:clusterCities});clusterCities=[];}
-  else if(/^MP\d+$/i.test(clean(r[0])))cityRtos.push(metric(r));
+  if(/ CLUSTER$/i.test(name)){
+   finishCluster();const label=name.replace(/ CLUSTER$/i,'');
+   current={name:label,summary:metric(r),cities:[]};
+  }else if(/ CITY$/i.test(name)){
+   finishCity(name.replace(/ CITY$/i,''),metric(r));
+  }else if(/^MP\\d+$/i.test(clean(r[0]))){
+   cityRtos.push(metric(r));
+  }
  }
- if(clusterCities.length)clusters.push({name:'Other',summary:null,cities:clusterCities});
+ finishCluster();
  const oem=b.slice(5).filter(r=>clean(r[0])&&clean(r[1])).map(r=>({city:clean(r[0]),name:clean(r[1]),mtd:{volume:n(r[2]),share:n(r[3]),change:n(r[4])},ytd:{volume:n(r[6]),share:n(r[7]),change:n(r[8])}}));
- const fuel=c.slice(6).filter(r=>/^MP\d+$/i.test(clean(r[0]))&&clean(r[1])).map(r=>({code:clean(r[0]),city:clean(r[1]),mtd:{shares:r.slice(7,12).map(n)},ytd:{shares:r.slice(23,28).map(n)}}));
- data={clusters,oem,fuel,cities:clusters.flatMap(x=>x.cities.map(y=>y.name)).sort((x,y)=>x.localeCompare(y))};
-}
-function overviewCells(x,p){
- const v=x[p];
- return '<td>'+num(v.industry)+'</td><td>'+pct(v.share)+'</td><td>'+delta(v.change)+'</td>';
-}
-function renderOverview(){
- let mtd='',ytd='';
- data.clusters.forEach((cl,ci)=>{
-  const clusterLabel='<td>▰ &nbsp;'+esc(cl.name)+' CLUSTER</td>';
-  mtd+='<tr class="group-row">'+clusterLabel+(cl.summary?overviewCells(cl.summary,'mtd'):'<td colspan="3"></td>')+'</tr>';
-  ytd+='<tr class="group-row">'+clusterLabel+(cl.summary?overviewCells(cl.summary,'ytd'):'<td colspan="3"></td>')+'</tr>';
-  cl.cities.forEach((city,j)=>{
-   const key=ci+'-'+j,open=openCity===key;
-   const label='<td><div class="city-name"><span class="chev">'+(open?'−':'+')+'</span>'+esc(city.name)+'</div></td>';
-   mtd+='<tr class="city-row" data-key="'+key+'">'+label+overviewCells(city.summary,'mtd')+'</tr>';
-   ytd+='<tr class="city-row" data-key="'+key+'">'+label+overviewCells(city.summary,'ytd')+'</tr>';
-   if(open)city.rtos.forEach(r=>{
-    const rlabel='<td>'+esc(r.code)+' · '+esc(r.name)+'</td>';
-    mtd+='<tr class="rto-row">'+rlabel+overviewCells(r,'mtd')+'</tr>';
-    ytd+='<tr class="rto-row">'+rlabel+overviewCells(r,'ytd')+'</tr>';
-   });
-  });
- });
- $('overviewMtd').innerHTML=mtd||'<tr><td colspan="4" class="empty">No cluster or city records found.</td></tr>';
- $('overviewYtd').innerHTML=ytd||'<tr><td colspan="4" class="empty">No cluster or city records found.</td></tr>';
- document.querySelectorAll('.city-row').forEach(el=>el.addEventListener('click',()=>{openCity=openCity===el.dataset.key?null:el.dataset.key;renderOverview();}));
-}
-function selectedCityObject(){return data.clusters.flatMap(x=>x.cities).find(x=>x.name===selectedCity);}
-function setCityOptions(){
- $('citySelect').innerHTML='<option value="">Choose city</option>'+data.cities.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');
-}
-function setRtoOptions(){
- const city=selectedCityObject(),list=city?.rtos||[];
- $('rtoSelect').innerHTML='<option value="">Choose RTO</option>'+list.map(r=>'<option value="'+esc(r.code)+'">'+esc(r.code)+' · '+esc(r.name)+'</option>').join('');
- $('rtoSelect').disabled=!list.length;selectedRto='';renderDetail();
-}
-function renderDetail(){
+ const fuel=parseFuelSheet(c);function renderDetail(){
  const p=period==='MTD'?'mtd':'ytd',periodLabel=period==='MTD'?'November · MTD':'Till November · YTD';
  $('oemPeriod').textContent=periodLabel;$('fuelPeriod').textContent=periodLabel;
  if(!selectedCity||!selectedRto){
   $('oemBody').innerHTML='<tr><td colspan="4" class="empty">Select a city and RTO to view OEM data</td></tr>';
-  $('fuelGrid').innerHTML='<div class="empty" style="grid-column:1/-1">Select an RTO to view fuel-wise market share</div>';return;
+  $('fuelBody').innerHTML='<tr><td colspan="6" class="empty">Select an RTO to view fuel-wise performance</td></tr>';return;
  }
  const rto=selectedCityObject()?.rtos.find(r=>r.code===selectedRto);
  const oemRows=data.oem.filter(x=>x.city.toUpperCase()===rto?.name.toUpperCase());
  $('oemBody').innerHTML=oemRows.map(x=>'<tr><td style="text-align:left;font-weight:700">'+esc(x.name)+'</td><td>'+num(x[p].volume)+'</td><td>'+pct(x[p].share)+'</td><td>'+delta(x[p].change)+'</td></tr>').join('')||'<tr><td colspan="4" class="empty">No OEM records found for this RTO in Tab 2.</td></tr>';
- const f=data.fuel.find(x=>x.code.toUpperCase()===selectedRto.toUpperCase()),names=['CNG','Diesel','EV','Petrol','Total'];
- $('fuelGrid').innerHTML=f?names.map((name,i)=>'<div class="fuel"><div class="name">'+name+'</div><strong>'+pct(f[p].shares[i])+'</strong><small>Market share</small></div>').join(''):'<div class="empty" style="grid-column:1/-1">No fuel-wise record found for this RTO in Tab 3.</div>';
+ const norm=x=>clean(x).toUpperCase().replace(/[^A-Z0-9]/g,'');
+ const fuel=data.fuel.find(x=>x.code.toUpperCase()===selectedRto.toUpperCase())||
+  data.fuel.find(x=>norm(x.location).includes(norm(rto?.name))||norm(rto?.name).includes(norm(x.location)));
+ const fuels=['CNG','DIESEL','EV','PETROL','TOTAL'];
+ if(!fuel){$('fuelBody').innerHTML='<tr><td colspan="6" class="empty">No matching fuel-wise row found for '+esc(selectedRto)+' · '+esc(rto?.name||'')+'. Check Tab 3 RTO label.</td></tr>';return;}
+ const keys=['volume','share','change'],labels=['Fuel-wise Volume','Fuel-wise Market Share','Market Share Change'];
+ $('fuelBody').innerHTML=keys.map((k,i)=>'<tr><td style="text-align:left;font-weight:750">'+labels[i]+'</td>'+fuels.map(f=>'<td>'+(k==='volume'?num(fuel.values[f][k]):delta(fuel.values[f][k]))+'</td>').join('')+'</tr>').join('');
 }
-function showPage(which){
- const detail=which==='detail';$('overview').classList.toggle('hidden',detail);$('detail').classList.toggle('hidden',!detail);
- $('tabOverview').classList.toggle('active',!detail);$('tabDetail').classList.toggle('active',detail);
-}
-async function load(){
- try{
-  const response=await fetch(WORKBOOK_URL+'?v='+Date.now(),{cache:'no-store'});
-  if(!response.ok)throw Error('Workbook not found. Upload “Vahan Portal Data.xlsx” to the repository root (beside index.html), then refresh.');
-  const workbook=XLSX.read(await response.arrayBuffer(),{type:'array'});parseWorkbook(workbook);
-  renderOverview();setCityOptions();
-  $('updated').textContent='Workbook synced · '+new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
-  $('error').classList.add('hidden');
- }catch(e){
-  $('error').textContent=e.message;$('error').classList.remove('hidden');
-  $('overviewBody').innerHTML='<tr><td colspan="7" class="empty">'+esc(e.message)+'</td></tr>';
-  $('updated').textContent='Workbook unavailable';
- }
-}
-$('tabOverview').onclick=()=>showPage('overview');$('tabDetail').onclick=()=>showPage('detail');$('goDetail').onclick=()=>showPage('detail');
-$('citySelect').onchange=e=>{selectedCity=e.target.value;setRtoOptions();};
-$('rtoSelect').onchange=e=>{selectedRto=e.target.value;renderDetail();};
-$('mtdBtn').onclick=()=>{period='MTD';$('mtdBtn').classList.add('active');$('ytdBtn').classList.remove('active');renderDetail();};
-$('ytdBtn').onclick=()=>{period='YTD';$('ytdBtn').classList.add('active');$('mtdBtn').classList.remove('active');renderDetail();};
-load();setInterval(load,300000);
-</script></body></html>
+>
