@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#07152d"><title>Vahan Market Share | NEXA</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#07152d"><title>NEXA MARKET Intelligence | Vahan Market Share</title>
 <style>
 :root{--navy:#07182f;--navy2:#102b50;--blue:#1769aa;--ink:#17263d;--muted:#718096;--line:#e4eaf1;--bg:#f3f6fa;--green:#13845b;--red:#cc3947;--soft:#f7f9fc}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -13,11 +13,44 @@ header{background:linear-gradient(110deg,#06152b,#12345c);color:white;padding:24
 .section-title{display:flex;justify-content:space-between;align-items:center;padding:17px 19px;border-bottom:1px solid var(--line)}.section-title h3{font-size:15px;margin:0}.section-title span{font-size:11px;color:var(--muted);font-weight:750}.period{display:flex;gap:4px;background:#e8edf4;padding:4px;border-radius:10px}.period button{border:0;background:transparent;padding:9px 15px;border-radius:7px;font-weight:800;color:#617187;cursor:pointer}.period button.active{background:white;color:var(--navy);box-shadow:0 1px 4px #10264a18}
 .fuel-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;padding:18px}.fuel{border:1px solid var(--line);border-radius:12px;padding:16px;background:#fbfcfe}.fuel .name{font-size:10px;color:#6e7d91;font-weight:850;letter-spacing:1px}.fuel strong{display:block;font-size:24px;letter-spacing:-.5px;margin:7px 0 2px}.fuel small{color:#8491a2;font-size:11px}.empty,.loading{padding:34px;text-align:center;color:var(--muted)}.error{background:#fff3f1;color:#a3332b;border:1px solid #f0c7c2;padding:13px;border-radius:10px;margin-bottom:15px;font-size:12px}.hidden{display:none!important}
 @media(max-width:680px){header{padding:17px}.brand h1{font-size:18px}.status{max-width:125px}.wrap{padding:17px 10px 32px}.heading h2{font-size:20px}.filters{grid-template-columns:1fr}.fuel-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:12px}.fuel:last-child{grid-column:span 2}.tab{flex:1;padding:10px 8px;font-size:12px}.data-table th,.data-table td{padding:11px 10px}.data-table td{font-size:13px}.period-head{padding:14px}.period-head h3{font-size:14px}}
+
+/* Refined hierarchy, controls and responsive presentation */
+header{padding-top:22px;padding-bottom:22px;background:linear-gradient(115deg,#06152b 0%,#102d50 62%,#17466d 100%)}
+.brand h1{font-size:24px;letter-spacing:.15px;font-weight:850}
+.status{font-size:12px;color:#d2e1f0;max-width:none}
+.card{border-radius:18px;box-shadow:0 10px 30px rgba(12,35,64,.07)}
+.period-head{padding:17px 21px}
+.period-head h3{font-size:16px;font-weight:850}
+.data-table th{font-size:11px;letter-spacing:.65px;padding:13px 17px}
+.data-table td{padding:14px 17px}
+.cluster-row td{background:#eaf1f8}
+.cluster-row:hover td{background:#dce9f6}
+.city-row td:first-child{background:#f5f8fc}
+.city-row:hover td{background:#edf4fb}
+.cluster-name,.city-name{min-height:24px}
+.chev{font-weight:850;transition:background .15s ease,transform .15s ease}
+.cluster-row:hover .chev,.city-row:hover .chev{background:#d4e4f4}
+.details-link,.tab,.field select{transition:all .15s ease}
+.details-link:hover{background:#edf5fc;border-color:#9ebbd8}
+.tab{box-shadow:0 2px 6px rgba(18,42,70,.04)}
+.tab.active{box-shadow:0 5px 14px rgba(10,38,70,.18)}
+.filters{gap:16px}
+.field select:focus{outline:3px solid rgba(23,105,170,.15);border-color:#4b89bd}
+@media(max-width:680px){
+ header{padding:18px 15px}
+ .brand h1{font-size:19px}
+ .status{font-size:10px}
+ .data-table th{font-size:9px}
+ .data-table td{padding:12px 9px}
+ .cluster-name,.city-name{gap:7px}
+ .hierarchy-count{font-size:10px}
+}
+
 </style></head><body>
-<header><div class="top"><div class="brand"><div class="mark">N</div><div><div class="eyebrow">NEXA • MARKET INTELLIGENCE</div><h1>Vahan Market Share</h1></div></div><div class="status">DATA SOURCE <b>LIVE WORKBOOK</b><br><span id="updated">Checking workbook…</span></div></div></header>
+<header><div class="top"><div class="brand"><div><div class="eyebrow">NEXA</div><h1>NEXA MARKET Intelligence</h1></div></div><div class="status"><span id="updated">Checking latest update…</span></div></div></header>
 <main class="wrap"><div id="error" class="error hidden"></div><nav class="tabs"><button class="tab active" id="tabOverview">01 &nbsp; Market Share</button><button class="tab" id="tabDetail">02 &nbsp; Detailed View</button></nav>
 <section id="overview">
-<div class="toolbar"><div class="heading"><h2>Cluster Overview</h2><p>Cluster totals first · Expand a cluster to view its cities, then expand a city to view its RTOs</p></div><button class="details-link" id="goDetail">Detailed view ↗</button></div>
+<div class="toolbar"><div class="heading"><h2>Cluster Overview</h2><p>Expand a cluster to view its cities, then expand a city to view its RTOs</p></div><button class="details-link" id="goDetail">Detailed view ↗</button></div>
 <div class="overview-grid">
  <div class="card period-mtd"><div class="period-head"><h3>Monthly Performance</h3><span>MTD · NOVEMBER</span></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Cluster / City / RTO</th><th>Industry</th><th>NEXA Volume</th><th>NEXA MS</th><th>MS Δ LY</th></tr></thead><tbody id="overviewMtd"><tr><td colspan="5" class="loading">Loading workbook…</td></tr></tbody></table></div></div>
  <div class="card period-ytd"><div class="period-head"><h3>Year-to-Date Performance</h3><span>YTD · TILL NOVEMBER</span></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Cluster / City / RTO</th><th>Industry</th><th>NEXA Volume</th><th>NEXA MS</th><th>MS Δ LY</th></tr></thead><tbody id="overviewYtd"><tr><td colspan="5" class="loading">Loading workbook…</td></tr></tbody></table></div></div>
@@ -29,7 +62,7 @@ header{background:linear-gradient(110deg,#06152b,#12345c);color:white;padding:24
 <div class="card"><div class="section-title"><h3>Fuel-wise Performance</h3><span id="fuelPeriod">November · MTD</span></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Fuel Metric</th><th>CNG</th><th>Diesel</th><th>EV</th><th>Petrol</th><th>Total</th></tr></thead><tbody id="fuelBody"><tr><td colspan="6" class="empty">Select an RTO to view fuel-wise performance</td></tr></tbody></table></div></div></section></main>
 <script>
 const WORKBOOK_URL='./Vahan%20Portal%20Data.xlsx';
-let data={clusters:[],oem:[],fuel:[],cities:[]},period='MTD',selectedCity='',selectedRto='',openCluster=null,openCity=null;
+let data={clusters:[],oem:[],fuel:[],cities:[]},period='MTD',selectedCity='',selectedRto='',expanded={mtd:{clusters:new Set(),cities:new Set()},ytd:{clusters:new Set(),cities:new Set()}};
 const $=id=>document.getElementById(id);
 const n=v=>{if(typeof v==='string')v=v.replace(/,/g,'').replace('%','');const x=Number(v);return Number.isFinite(x)?x:0;};
 const clean=v=>String(v??'').trim();
@@ -91,40 +124,42 @@ function overviewCells(x,p){
  return '<td>'+num(v.industry)+'</td><td>'+num(v.volume)+'</td><td>'+pct(v.share)+'</td><td>'+delta(v.change)+'</td>';
 }
 function renderOverview(){
- let mtd='',ytd='';
- data.clusters.filter(Boolean).forEach((cl,ci)=>{
-  const clusterKey=String(ci),clusterOpen=openCluster===clusterKey;
-  const clusterLabel='<td><div class="cluster-name"><span class="chev">'+(clusterOpen?'−':'+')+'</span><strong>'+esc(cl.name)+' Cluster</strong><span class="hierarchy-count">'+(cl.cities||[]).length+' cities</span></div></td>';
-  mtd+='<tr class="group-row cluster-row" data-cluster="'+clusterKey+'">'+clusterLabel+overviewCells(cl.summary,'mtd')+'</tr>';
-  ytd+='<tr class="group-row cluster-row" data-cluster="'+clusterKey+'">'+clusterLabel+overviewCells(cl.summary,'ytd')+'</tr>';
-  if(!clusterOpen)return;
-  (cl.cities||[]).filter(Boolean).forEach((city,j)=>{
-   const key=clusterKey+'-'+j,cityOpen=openCity===key;
-   const cityLabel='<td><div class="city-name"><span class="chev">'+(cityOpen?'−':'+')+'</span>'+esc(city.name)+'<span class="hierarchy-count">'+(city.rtos||[]).length+' RTOs</span></div></td>';
-   mtd+='<tr class="city-row" data-city="'+key+'">'+cityLabel+overviewCells(city.summary,'mtd')+'</tr>';
-   ytd+='<tr class="city-row" data-city="'+key+'">'+cityLabel+overviewCells(city.summary,'ytd')+'</tr>';
-   if(cityOpen)(city.rtos||[]).filter(Boolean).forEach(r=>{
-    const rtoLabel='<td><div class="rto-name">'+esc(r.code)+' <span>· '+esc(r.name)+'</span></div></td>';
-    mtd+='<tr class="rto-row">'+rtoLabel+overviewCells(r,'mtd')+'</tr>';
-    ytd+='<tr class="rto-row">'+rtoLabel+overviewCells(r,'ytd')+'</tr>';
+ const renderPeriod=p=>{
+  let html='';
+  data.clusters.filter(Boolean).forEach((cl,ci)=>{
+   const clusterKey=String(ci),state=expanded[p],clusterOpen=state.clusters.has(clusterKey);
+   const clusterLabel='<td><div class="cluster-name"><span class="chev">'+(clusterOpen?'−':'+')+'</span><strong>'+esc(cl.name)+' Cluster</strong><span class="hierarchy-count">'+(cl.cities||[]).length+' cities</span></div></td>';
+   html+='<tr class="group-row cluster-row" data-period="'+p+'" data-cluster="'+clusterKey+'">'+clusterLabel+overviewCells(cl.summary,p)+'</tr>';
+   if(!clusterOpen)return;
+   (cl.cities||[]).filter(Boolean).forEach((city,j)=>{
+    const key=clusterKey+'-'+j,cityOpen=state.cities.has(key);
+    const cityLabel='<td><div class="city-name"><span class="chev">'+(cityOpen?'−':'+')+'</span>'+esc(city.name)+'<span class="hierarchy-count">'+(city.rtos||[]).length+' RTOs</span></div></td>';
+    html+='<tr class="city-row" data-period="'+p+'" data-city="'+key+'">'+cityLabel+overviewCells(city.summary,p)+'</tr>';
+    if(cityOpen)(city.rtos||[]).filter(Boolean).forEach(r=>{
+     const rtoLabel='<td><div class="rto-name">'+esc(r.code)+' <span>· '+esc(r.name)+'</span></div></td>';
+     html+='<tr class="rto-row">'+rtoLabel+overviewCells(r,p)+'</tr>';
+    });
    });
   });
- });
- const mpTotal=data.mpTotal||{mtd:{industry:0,volume:0,share:0,change:0},ytd:{industry:0,volume:0,share:0,change:0}};
- const totalLabel='<td><strong>MP TOTAL</strong></td>';
- mtd+='<tr class="mp-total-row">'+totalLabel+overviewCells(mpTotal,'mtd')+'</tr>';
- ytd+='<tr class="mp-total-row">'+totalLabel+overviewCells(mpTotal,'ytd')+'</tr>';
- $('overviewMtd').innerHTML=mtd||'<tr><td colspan="5" class="empty">No records found.</td></tr>';
- $('overviewYtd').innerHTML=ytd||'<tr><td colspan="5" class="empty">No records found.</td></tr>';
+  const mpTotal=data.mpTotal||{mtd:{industry:0,volume:0,share:0,change:0},ytd:{industry:0,volume:0,share:0,change:0}};
+  html+='<tr class="mp-total-row"><td><strong>MP TOTAL</strong></td>'+overviewCells(mpTotal,p)+'</tr>';
+  return html;
+ };
+ $('overviewMtd').innerHTML=renderPeriod('mtd');
+ $('overviewYtd').innerHTML=renderPeriod('ytd');
  document.querySelectorAll('.cluster-row').forEach(el=>el.addEventListener('click',()=>{
-  openCluster=openCluster===el.dataset.cluster?null:el.dataset.cluster;openCity=null;renderOverview();
+  const state=expanded[el.dataset.period],key=el.dataset.cluster;
+  state.clusters.has(key)?state.clusters.delete(key):state.clusters.add(key);
+  renderOverview();
  }));
  document.querySelectorAll('.city-row').forEach(el=>el.addEventListener('click',()=>{
-  openCity=openCity===el.dataset.city?null:el.dataset.city;renderOverview();
+  const state=expanded[el.dataset.period],key=el.dataset.city;
+  state.cities.has(key)?state.cities.delete(key):state.cities.add(key);
+  renderOverview();
  }));
 }
 function selectedCityObject(){return data.clusters.flatMap(x=>x.cities).find(x=>x.name===selectedCity);}
-function setCityOptions(){$('citySelect').innerHTML='<option value="">Choose city</option>'+data.cities.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');}
+function setCityOptions(){const orderedCities=data.clusters.flatMap(cl=>(cl.cities||[]).map(city=>city.name));$('citySelect').innerHTML='<option value="">Choose city</option>'+orderedCities.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');}
 function setRtoOptions(){const list=selectedCityObject()?.rtos||[];$('rtoSelect').innerHTML='<option value="">Choose RTO</option>'+list.map(r=>'<option value="'+esc(r.code)+'">'+esc(r.code)+' · '+esc(r.name)+'</option>').join('');$('rtoSelect').disabled=!list.length;selectedRto='';renderDetail();}
 function renderDetail(){
  const p=period==='MTD'?'mtd':'ytd',label=period==='MTD'?'November · MTD':'Till November · YTD';$('oemPeriod').textContent=label;$('fuelPeriod').textContent=label;
@@ -146,7 +181,7 @@ async function loadXlsx(){
  throw Error('Could not load the Excel reader. Check your internet connection and refresh.');
 }
 async function load(){
- const status=$('updated');status.textContent='Loading workbook…';
+ const status=$('updated');status.textContent='Checking latest update…';
  $('overviewMtd').innerHTML='<tr><td colspan="5" class="loading">Loading workbook…</td></tr>';
  $('overviewYtd').innerHTML='<tr><td colspan="5" class="loading">Loading workbook…</td></tr>';
  try{
@@ -159,12 +194,12 @@ async function load(){
   const buffer=await response.arrayBuffer();
   if(!buffer.byteLength)throw Error('The workbook file is empty.');
   const wb=XLSX.read(buffer,{type:'array'});
-  parseWorkbook(wb);renderOverview();setCityOptions();
-  status.textContent='Updated · '+new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
+  parseWorkbook(wb);expanded={mtd:{clusters:new Set(data.clusters.map((_,i)=>String(i))),cities:new Set()},ytd:{clusters:new Set(data.clusters.map((_,i)=>String(i))),cities:new Set()}};renderOverview();setCityOptions();
+  status.textContent='Last updated · '+new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
   $('error').classList.add('hidden');
  }catch(e){
   $('error').textContent=e.message||'Unable to load workbook.';$('error').classList.remove('hidden');
-  status.textContent='Data unavailable';
+  status.textContent='Update unavailable';
   $('overviewMtd').innerHTML='<tr><td colspan="5" class="empty">Unable to load data. Refresh to retry.</td></tr>';
   $('overviewYtd').innerHTML='<tr><td colspan="5" class="empty">Unable to load data. Refresh to retry.</td></tr>';
  }
