@@ -44,7 +44,7 @@ function parseFuelSheet(rows){
  // Tab 3 fixed columns: MTD C:Q and YTD S:AG.
  for(let i=6;i<rows.length;i++){
   const r=rows[i]||[],code=clean(r[0]).toUpperCase(),location=clean(r[1]).toUpperCase();
-  if(!/^MP\\d+$/.test(code))continue;
+  if(!/^MP\d+$/.test(code))continue;
   const values={mtd:{},ytd:{}};
   [['mtd',2,7,12],['ytd',18,23,28]].forEach(([p,volStart,shareStart,changeStart])=>{
    fuels.forEach((fuel,j)=>values[p][fuel]={
