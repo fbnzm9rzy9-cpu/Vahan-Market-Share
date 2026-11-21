@@ -142,6 +142,16 @@ body{background:var(--platinum)!important;color:var(--ink)}
 .wrap{background:transparent}
 .card,.panel,.period-card{background:#fff}
 
+
+/* Page 2: consistently center-align every table heading and data cell */
+#detail .data-table th,
+#detail .data-table td,
+#detail .data-table th:first-child,
+#detail .data-table td:first-child{
+ text-align:center!important;
+ vertical-align:middle;
+}
+
 </style></head><body>
 <header><div class="top"><div class="brand"><div><div class="eyebrow">VAHAN MARKET SHARE</div><h1>Market Intelligence</h1></div></div><div class="status"><span id="updated">Checking latest update…</span></div></div></header>
 <main class="wrap"><div id="error" class="error hidden"></div><nav class="tabs"><button class="tab active" id="tabOverview">01 &nbsp; Market Share</button><button class="tab" id="tabDetail">02 &nbsp; Detailed View</button></nav>
