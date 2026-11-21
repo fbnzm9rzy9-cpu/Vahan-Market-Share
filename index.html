@@ -34,17 +34,19 @@ const $=id=>document.getElementById(id);
 const n=v=>{if(typeof v==='string')v=v.replace(/,/g,'').replace('%','');const x=Number(v);return Number.isFinite(x)?x:0;};
 const clean=v=>String(v??'').trim();
 const norm=v=>clean(v).toUpperCase().replace(/[^A-Z0-9]/g,'');
-const pct=v=>{const x=n(v);return (Math.abs(x)>1?x:x*100).toFixed(2)+'%';};
-const num=v=>n(v).toLocaleString('en-IN',{maximumFractionDigits:1});
+const pct=v=>{const x=n(v);return (Math.abs(x)>1?x:x*100).toFixed(1)+'%';};
+const num=v=>Math.ceil(n(v)).toLocaleString('en-IN');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const delta=v=>'<span class="'+(n(v)>=0?'positive':'negative')+'">'+(n(v)>0?'+':'')+pct(v)+'</span>';
 const metric=r=>({code:clean(r[0]),name:clean(r[1]),mtd:{industry:n(r[2]),volume:n(r[4]),share:n(r[5]),change:n(r[6])},ytd:{industry:n(r[10]),volume:n(r[12]),share:n(r[13]),change:n(r[14])}});
 function parseFuelSheet(rows){
  const fuels=['CNG','DIESEL','EV','PETROL','TOTAL'],records=[];
- // Tab 3 fixed columns: MTD C:Q and YTD S:AG.
- for(let i=6;i<rows.length;i++){
+ // Locate the first actual MP RTO row instead of assuming a fixed header depth.
+ const firstData=rows.findIndex(r=>/^MP\\d+$/i.test(clean((r||[])[0])));
+ if(firstData<0)return records;
+ for(let i=firstData;i<rows.length;i++){
   const r=rows[i]||[],code=clean(r[0]).toUpperCase(),location=clean(r[1]).toUpperCase();
-  if(!/^MP\d+$/.test(code))continue;
+  if(!/^MP\\d+$/i.test(code))continue;
   const values={mtd:{},ytd:{}};
   [['mtd',2,7,12],['ytd',18,23,28]].forEach(([p,volStart,shareStart,changeStart])=>{
    fuels.forEach((fuel,j)=>values[p][fuel]={
