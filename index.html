@@ -88,6 +88,50 @@ header{background:linear-gradient(112deg,#050505 0%,#101820 58%,#073b68 100%);bo
 }
 @media(min-width:681px){#overview .data-table th{font-size:10px}#overview .data-table td{font-size:13px}}
 
+
+/* NEXA premium palette: midnight, deep navy, electric blue and platinum */
+:root{
+ --navy:#080E19;--navy2:#102A43;--blue:#168ACB;--blue2:#0877B8;
+ --ice:#DCEAF4;--platinum:#F4F6F8;--silver:#AEBAC6;
+ --ink:#172536;--muted:#637487;--line:#D8E0E7;--green:#16845B;--red:#C62836;
+ --bg:#F4F6F8;--soft:#EDF3F7;
+}
+body{background:var(--platinum);color:var(--ink)}
+header{background:linear-gradient(112deg,#080E19 0%,#102A43 72%,#123D5C 100%);border-bottom:3px solid var(--blue);box-shadow:0 5px 22px rgba(8,14,25,.16)}
+.brand h1{color:#fff}
+.eyebrow{color:#8BCDF0}
+.status{color:#DCEAF4}
+.wrap{background:transparent}
+.card,.panel,.period-card{background:#fff;border:1px solid #E1E7EC;box-shadow:0 8px 24px rgba(16,42,67,.055);border-radius:16px}
+.tab{color:#40556A;border-color:#D8E0E7;background:#fff}
+.tab.active{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 4px 13px rgba(22,138,203,.2)}
+button,.btn,.details-link{border-radius:9px}
+button.primary,.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+button.primary:hover,.btn.primary:hover{background:var(--blue2)}
+.period-mtd{border-left:4px solid var(--blue)}
+.period-ytd{border-left:4px solid var(--navy2)}
+.period-head{background:linear-gradient(90deg,#EAF3F9 0%,#FFFFFF 100%);border-bottom:1px solid #E1E8EE}
+.period-head h3{color:var(--navy2)}
+.data-table{border-collapse:separate;border-spacing:0}
+.data-table thead th{background:#F0F4F7;color:#40556A;border-bottom:1px solid #D8E0E7}
+.data-table td{border-bottom:1px solid #E9EEF2;color:#233548}
+.cluster-row td{background:#DCEAF4;color:#102A43;font-weight:750}
+.cluster-row:hover td{background:#CFE2EF}
+.city-row td{background:#F4F7F9}
+.city-row td:first-child{color:#183B56}
+.city-row:hover td{background:#EAF1F6}
+.rto-row td{background:#fff}
+.rto-row:hover td{background:#F7FAFC}
+.chev{background:#C6DFEF;color:#075F91;border:1px solid #B4D3E6}
+.mp-total-row td{background:#080E19;color:#fff;border-top:2px solid #168ACB;font-weight:800}
+.details-link{color:#0877B8;background:#F2F8FC;border:1px solid #BFD9E9}
+.details-link:hover{background:#DCEAF4}
+.field label{color:#40556A}
+.field select,.field input{background:#fff;border:1px solid #C9D4DE;color:#172536;border-radius:9px}
+.field select:focus,.field input:focus{outline:3px solid rgba(22,138,203,.15);border-color:#168ACB}
+.positive{color:#16845B}.negative{color:#C62836}
+.table-scroll{border-radius:0 0 14px 14px}
+
 </style></head><body>
 <header><div class="top"><div class="brand"><div><div class="eyebrow">VAHAN MARKET SHARE</div><h1>Market Intelligence</h1></div></div><div class="status"><span id="updated">Checking latest update…</span></div></div></header>
 <main class="wrap"><div id="error" class="error hidden"></div><nav class="tabs"><button class="tab active" id="tabOverview">01 &nbsp; Market Share</button><button class="tab" id="tabDetail">02 &nbsp; Detailed View</button></nav>
