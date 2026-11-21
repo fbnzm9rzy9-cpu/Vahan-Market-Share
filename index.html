@@ -211,7 +211,7 @@ function renderDetail(){
  const fuel=data.fuel.find(x=>x.code===selectedRto.toUpperCase())||data.fuel.find(x=>norm(x.location)===norm(rto?.name)),names=['CNG','DIESEL','EV','PETROL','TOTAL'];
  if(!fuel){$('fuelBody').innerHTML='<tr><td colspan="6" class="empty">No matching fuel-wise row found for '+esc(selectedRto)+' · '+esc(rto?.name||'')+'. Tab 3 row label needs review.</td></tr>';return;}
  const rows=[['Fuel-wise Volume','volume'],['Fuel-wise Market Share','share'],['Market Share Change','change']];
- $('fuelBody').innerHTML=rows.map(([title,key])=>'<tr><td style="text-align:left;font-weight:750">'+title+'</td>'+names.map(f=>'<td>'+(key==='volume'?num(fuel.values[p][f][key]):delta(fuel.values[p][f][key]))+'</td>').join('')+'</tr>').join('');
+ $('fuelBody').innerHTML=rows.map(([title,key])=>'<tr><td style="text-align:left;font-weight:750">'+title+'</td>'+names.map(f=>'<td>'+(key==='volume'?num(fuel.values[p][f][key]):key==='share'?pct(fuel.values[p][f][key]):delta(fuel.values[p][f][key]))+'</td>').join('')+'</tr>').join('');
 }
 function showPage(which){const detail=which==='detail';$('overview').classList.toggle('hidden',detail);$('detail').classList.toggle('hidden',!detail);$('tabOverview').classList.toggle('active',!detail);$('tabDetail').classList.toggle('active',detail);}
 async function loadXlsx(){
