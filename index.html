@@ -182,11 +182,11 @@ const metric=r=>({code:clean(r[0]),name:clean(r[1]),mtd:{industry:n(r[2]),volume
 function parseFuelSheet(rows){
  const fuels=['CNG','DIESEL','EV','PETROL','TOTAL'],records=[];
  // Keep both individual RTO rows and the workbook's CITY subtotal rows.
- const firstData=rows.findIndex(r=>/^MP\\d+$/i.test(clean((r||[])[0]))||/ CITY$/i.test(clean((r||[])[1])));
+ const firstData=rows.findIndex(r=>/^MP\d+$/i.test(clean((r||[])[0]))||/ CITY$/i.test(clean((r||[])[1])));
  if(firstData<0)return records;
  for(let i=firstData;i<rows.length;i++){
   const r=rows[i]||[],code=clean(r[0]).toUpperCase(),location=clean(r[1]).toUpperCase();
-  const isRto=/^MP\\d+$/i.test(code),isCity=/ CITY$/i.test(location);
+  const isRto=/^MP\d+$/i.test(code),isCity=/ CITY$/i.test(location);
   if(!isRto&&!isCity)continue;
   const values={mtd:{},ytd:{}};
   [['mtd',2,7,12],['ytd',18,23,28]].forEach(([p,volStart,shareStart,changeStart])=>{
