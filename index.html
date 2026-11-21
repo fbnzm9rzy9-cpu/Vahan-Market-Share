@@ -132,6 +132,18 @@ button.primary:hover,.btn.primary:hover{background:var(--blue2)}
 .positive{color:#16845B}.negative{color:#C62836}
 .table-scroll{border-radius:0 0 14px 14px}
 
+
+.msil-row td{background:#EAF3F9;font-weight:800;color:#102A43}
+.pie-layout{display:flex;align-items:center;gap:24px;padding:18px 22px}
+.pie-chart{width:190px;height:190px;flex:0 0 190px;border-radius:50%;position:relative;border:1px solid #d8e0e7}
+.pie-chart:after{content:"";position:absolute;inset:32%;background:#fff;border-radius:50%;box-shadow:0 1px 5px rgba(16,42,67,.08)}
+.pie-legend{display:grid;grid-template-columns:1fr 1fr;gap:11px 20px;flex:1;min-width:0}
+.pie-legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:#40556A;min-width:0}
+.pie-dot{width:10px;height:10px;border-radius:50%;flex:0 0 10px}
+.pie-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.pie-legend-item strong{color:#102A43;font-variant-numeric:tabular-nums}
+@media(max-width:680px){.pie-layout{gap:15px;padding:14px}.pie-chart{width:128px;height:128px;flex-basis:128px}.pie-chart:after{inset:32%}.pie-legend{grid-template-columns:1fr;gap:8px}.pie-legend-item{font-size:11px}}
+
 </style></head><body>
 <header><div class="top"><div class="brand"><div><div class="eyebrow">VAHAN MARKET SHARE</div><h1>Market Intelligence</h1></div></div><div class="status"><span id="updated">Checking latest update…</span></div></div></header>
 <main class="wrap"><div id="error" class="error hidden"></div><nav class="tabs"><button class="tab active" id="tabOverview">01 &nbsp; Market Share</button><button class="tab" id="tabDetail">02 &nbsp; Detailed View</button></nav>
@@ -145,6 +157,7 @@ button.primary:hover,.btn.primary:hover{background:var(--blue2)}
 <section id="detail" class="hidden"><div class="toolbar"><div class="heading"><h2>RTO Detailed Analysis</h2><p>OEM competition and fuel-wise market share for the selected RTO</p></div><div class="period"><button id="mtdBtn" class="active">MTD</button><button id="ytdBtn">YTD</button></div></div>
 <div class="filters"><div class="field"><label for="citySelect">Select City</label><select id="citySelect"><option value="">Choose city</option></select></div><div class="field"><label for="rtoSelect">Select RTO</label><select id="rtoSelect" disabled><option value="">Choose RTO</option></select></div></div>
 <div class="card" style="margin-bottom:14px"><div class="section-title"><h3>OEM-wise Market Share</h3><span id="oemPeriod">November · MTD</span></div><div class="table-scroll"><table class="data-table" style="min-width:560px"><thead><tr><th>OEM</th><th>Volume</th><th>Market Share</th><th>MS Change over Last Year</th></tr></thead><tbody id="oemBody"><tr><td colspan="4" class="empty">Select a city and RTO to view OEM data</td></tr></tbody></table></div></div>
+<div class="card" id="oemPieCard" style="margin-bottom:14px"><div class="section-title"><h3>OEM Market Share Distribution</h3><span id="pieSubtitle">Top 5 OEMs + Others</span></div><div class="pie-layout"><div id="oemPie" class="pie-chart" role="img" aria-label="OEM market share pie chart"></div><div id="oemPieLegend" class="pie-legend"></div></div></div>
 <div class="card"><div class="section-title"><h3>Fuel-wise Performance</h3><span id="fuelPeriod">November · MTD</span></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Fuel Metric</th><th>CNG</th><th>Diesel</th><th>EV</th><th>Petrol</th><th>Total</th></tr></thead><tbody id="fuelBody"><tr><td colspan="6" class="empty">Select an RTO to view fuel-wise performance</td></tr></tbody></table></div></div></section></main>
 <script>
 const WORKBOOK_URL='./Vahan%20Portal%20Data.xlsx';
@@ -246,6 +259,23 @@ function renderOverview(){
 function selectedCityObject(){return data.clusters.flatMap(x=>x.cities).find(x=>x.name===selectedCity);}
 function setCityOptions(){const orderedCities=data.clusters.flatMap(cl=>(cl.cities||[]).map(city=>city.name));$('citySelect').innerHTML='<option value="">Choose city</option>'+orderedCities.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');}
 function setRtoOptions(){const list=selectedCityObject()?.rtos||[];$('rtoSelect').innerHTML='<option value="">Choose RTO</option>'+list.map(r=>'<option value="'+esc(r.code)+'">'+esc(r.code)+' · '+esc(r.name)+'</option>').join('');$('rtoSelect').disabled=!list.length;selectedRto='';renderDetail();}
+function renderOemPie(rows,p,selectedName){
+ const excluded=['MSIL','COMPETION','COMPETITION'];
+ const brands=rows.filter(x=>!excluded.includes(norm(x.name))&&norm(x.name)!=='OTHERS')
+  .map(x=>({name:x.name,share:Math.max(0,Number(x[p].share)||0)}))
+  .filter(x=>x.share>0).sort((a,b)=>b.share-a.share);
+ const top=brands.slice(0,5),rest=brands.slice(5);
+ const workbookOthers=rows.find(x=>norm(x.name)==='OTHERS');
+ const othersShare=rest.reduce((sum,x)=>sum+x.share,0)+(workbookOthers?Math.max(0,Number(workbookOthers[p].share)||0):0);
+ const parts=[...top];if(othersShare>0)parts.push({name:'Others',share:othersShare});
+ const total=parts.reduce((sum,x)=>sum+x.share,0);
+ const colors=['#168ACB','#102A43','#5AA6D1','#7893A8','#B4C7D6','#DCE4EA'];
+ let cursor=0;const stops=parts.map((x,i)=>{const start=cursor;cursor+=total?x.share/total*100:0;return colors[i%colors.length]+' '+start.toFixed(3)+'% '+cursor.toFixed(3)+'%';});
+ $('oemPie').style.background=total?'conic-gradient('+stops.join(',')+')':'#E5EAF0';
+ $('oemPie').setAttribute('aria-label','Market share distribution for '+selectedName);
+ $('pieSubtitle').textContent=selectedName+' · '+(p==='mtd'?'MTD':'YTD');
+ $('oemPieLegend').innerHTML=parts.map((x,i)=>'<div class="pie-legend-item"><span class="pie-dot" style="background:'+colors[i%colors.length]+'"></span><span class="pie-label">'+esc(x.name)+'</span><strong>'+((x.share*100>1?x.share:x.share*100).toFixed(1))+'%</strong></div>').join('')||'<div class="empty">No OEM market-share data available.</div>';
+}
 function renderDetail(){
  const p=period==='MTD'?'mtd':'ytd',label=period==='MTD'?'November · MTD':'Till November · YTD';
  $('oemPeriod').textContent=label;$('fuelPeriod').textContent=label;
@@ -256,7 +286,10 @@ function renderDetail(){
  const city=selectedCityObject(),rto=selectedRto?city?.rtos.find(r=>r.code===selectedRto):null;
  const selectedName=rto?.name||selectedCity;
  const oemRows=data.oem.filter(x=>norm(x.city)===norm(selectedName));
- $('oemBody').innerHTML=oemRows.map(x=>'<tr><td style="text-align:left;font-weight:700">'+esc(x.name)+'</td><td>'+num(x[p].volume)+'</td><td>'+pct(x[p].share)+'</td><td>'+delta(x[p].change)+'</td></tr>').join('')||'<tr><td colspan="4" class="empty">No OEM records found for '+esc(selectedName)+' in Tab 2.</td></tr>';
+ const msil=oemRows.find(x=>norm(x.name)==='MSIL');
+ const orderedOem=[...oemRows.filter(x=>norm(x.name)==='MSIL'),...oemRows.filter(x=>norm(x.name)!=='MSIL'&&norm(x.name)!=='COMPETION')];
+ $('oemBody').innerHTML=orderedOem.map(x=>'<tr'+(norm(x.name)==='MSIL'?' class="msil-row"':'')+'><td style="text-align:left;font-weight:700">'+esc(x.name)+'</td><td>'+num(x[p].volume)+'</td><td>'+pct(x[p].share)+'</td><td>'+delta(x[p].change)+'</td></tr>').join('')||'<tr><td colspan="4" class="empty">No OEM records found for '+esc(selectedName)+' in Tab 2.</td></tr>';
+ renderOemPie(oemRows,p,selectedName);
  const fuel=data.fuel.find(x=>rto&&x.code===selectedRto.toUpperCase())||
   data.fuel.find(x=>!rto&&x.kind==='city'&&norm(x.location)===norm(selectedCity+' CITY'))||
   data.fuel.find(x=>norm(x.location)===norm(selectedName));
