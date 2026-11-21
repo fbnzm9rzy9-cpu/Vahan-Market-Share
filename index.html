@@ -40,23 +40,18 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const delta=v=>'<span class="'+(n(v)>=0?'positive':'negative')+'">'+(n(v)>0?'+':'')+pct(v)+'</span>';
 const metric=r=>({code:clean(r[0]),name:clean(r[1]),mtd:{industry:n(r[2]),volume:n(r[4]),share:n(r[5]),change:n(r[6])},ytd:{industry:n(r[10]),volume:n(r[12]),share:n(r[13]),change:n(r[14])}});
 function parseFuelSheet(rows){
- const fuels=['CNG','DIESEL','EV','PETROL','TOTAL'];let header=-1,best=0;
- for(let i=0;i<Math.min(rows.length,12);i++){const count=fuels.filter(f=>(rows[i]||[]).some(v=>norm(v)===f)).length;if(count>best){best=count;header=i;}}
- const colMeta={},maxCols=Math.max(...rows.slice(0,Math.min(rows.length,12)).map(r=>(r||[]).length),0),carried=Array(Math.min(rows.length,12)).fill('');
- for(let c=0;c<maxCols;c++){
-  const parts=[];
-  for(let rr=0;rr<Math.min(rows.length,12);rr++){const cell=clean((rows[rr]||[])[c]);if(cell)carried[rr]=cell;if(carried[rr])parts.push(carried[rr].toUpperCase());}
-  const joined=parts.join(' '),fuel=fuels.find(f=>new RegExp('\\b'+f+'\\b').test(joined));
-  let metric='';if(/VOLUME|COUNT|QTY|NOS/.test(joined))metric='volume';else if(/CHANGE|DELTA|VARIANCE|VS LY/.test(joined))metric='change';else if(/MARKET SHARE|MS%|MS %|SHARE/.test(joined))metric='share';
-  if(fuel&&metric)colMeta[c]={fuel,metric};
- }
- const records=[];
- for(let i=Math.max(5,header+1);i<rows.length;i++){
-  const r=rows[i]||[],cells=r.map(clean),location=clean(r[1])||clean(r[0])||cells.find(x=>/INDORE|BHOPAL|CHHINDWARA|KHARGONE/i.test(x))||'',match=cells.join(' ').match(/MP\d+/i),code=match?match[0].toUpperCase():'';
-  if(!location&&!code)continue;
-  const values={};fuels.forEach(f=>values[f]={volume:0,share:0,change:0});
-  Object.entries(colMeta).forEach(([col,m])=>values[m.fuel][m.metric]=n(r[Number(col)]));
-  if(Object.values(values).some(v=>v.volume||v.share||v.change))records.push({code,location:location.toUpperCase(),values});
+ const fuels=['CNG','DIESEL','EV','PETROL','TOTAL'],records=[];
+ // Tab 3 fixed columns: MTD C:Q and YTD S:AG.
+ for(let i=6;i<rows.length;i++){
+  const r=rows[i]||[],code=clean(r[0]).toUpperCase(),location=clean(r[1]).toUpperCase();
+  if(!/^MP\\d+$/.test(code))continue;
+  const values={mtd:{},ytd:{}};
+  [['mtd',2,7,12],['ytd',18,23,28]].forEach(([p,volStart,shareStart,changeStart])=>{
+   fuels.forEach((fuel,j)=>values[p][fuel]={
+    volume:n(r[volStart+j]),share:n(r[shareStart+j]),change:n(r[changeStart+j])
+   });
+  });
+  records.push({code,location,values});
  }
  return records;
 }
@@ -85,7 +80,8 @@ function parseWorkbook(wb){
  }
  if(pendingRtos.length)flushCity('Other RTOs',aggregateRtos(pendingRtos));
  const oem=b.slice(5).filter(r=>r&&clean(r[0])&&clean(r[1])).map(r=>({city:clean(r[0]),name:clean(r[1]),mtd:{volume:n(r[2]),share:n(r[3]),change:n(r[4])},ytd:{volume:n(r[6]),share:n(r[7]),change:n(r[8])}}));
- data={clusters,oem,fuel:parseFuelSheet(c),cities:[...new Set(clusters.flatMap(x=>x.cities.map(y=>y.name)))].sort((x,y)=>x.localeCompare(y))};
+ const mpRow=a.find(r=>r&&clean(r[1]).toUpperCase()==='MP');
+ data={clusters,oem,fuel:parseFuelSheet(c),mpTotal:mpRow?metric(mpRow):null,cities:[...new Set(clusters.flatMap(x=>x.cities.map(y=>y.name)))].sort((x,y)=>x.localeCompare(y))};
 }
 function overviewCells(x,p){
  const v=x&&x[p];
@@ -112,16 +108,7 @@ function renderOverview(){
    });
   });
  });
- const mpTotal={};
- ['mtd','ytd'].forEach(period=>{
-  let industry=0,volume=0,weightedChange=0,weight=0;
-  data.clusters.filter(Boolean).forEach(cl=>{
-   const v=cl.summary&&cl.summary[period];if(!v)return;
-   const base=Math.max(0,n(v.industry));
-   industry+=base;volume+=n(v.volume);weightedChange+=n(v.change)*base;weight+=base;
-  });
-  mpTotal[period]={industry,volume,share:industry?volume/industry*100:0,change:weight?weightedChange/weight:0};
- });
+ const mpTotal=data.mpTotal||{mtd:{industry:0,volume:0,share:0,change:0},ytd:{industry:0,volume:0,share:0,change:0}};
  const totalLabel='<td><strong>MP TOTAL</strong></td>';
  mtd+='<tr class="mp-total-row">'+totalLabel+overviewCells(mpTotal,'mtd')+'</tr>';
  ytd+='<tr class="mp-total-row">'+totalLabel+overviewCells(mpTotal,'ytd')+'</tr>';
@@ -145,7 +132,7 @@ function renderDetail(){
  const fuel=data.fuel.find(x=>x.code===selectedRto.toUpperCase())||data.fuel.find(x=>norm(x.location)===norm(rto?.name)),names=['CNG','DIESEL','EV','PETROL','TOTAL'];
  if(!fuel){$('fuelBody').innerHTML='<tr><td colspan="6" class="empty">No matching fuel-wise row found for '+esc(selectedRto)+' · '+esc(rto?.name||'')+'. Tab 3 row label needs review.</td></tr>';return;}
  const rows=[['Fuel-wise Volume','volume'],['Fuel-wise Market Share','share'],['Market Share Change','change']];
- $('fuelBody').innerHTML=rows.map(([title,key])=>'<tr><td style="text-align:left;font-weight:750">'+title+'</td>'+names.map(f=>'<td>'+(key==='volume'?num(fuel.values[f][key]):delta(fuel.values[f][key]))+'</td>').join('')+'</tr>').join('');
+ $('fuelBody').innerHTML=rows.map(([title,key])=>'<tr><td style="text-align:left;font-weight:750">'+title+'</td>'+names.map(f=>'<td>'+(key==='volume'?num(fuel.values[p][f][key]):delta(fuel.values[p][f][key]))+'</td>').join('')+'</tr>').join('');
 }
 function showPage(which){const detail=which==='detail';$('overview').classList.toggle('hidden',detail);$('detail').classList.toggle('hidden',!detail);$('tabOverview').classList.toggle('active',!detail);$('tabDetail').classList.toggle('active',detail);}
 async function loadXlsx(){
